@@ -5,6 +5,7 @@
   "main": "src/main.js",
   "type": "module",
   "scripts": {
+    "build": "echo 'No build step required'",
     "format": "prettier --write ."
   },
   "dependencies": {
