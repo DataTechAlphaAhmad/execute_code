@@ -3,11 +3,5 @@
   "version": "1.0.0",
   "description": "Code execution function",
   "main": "src/index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node src/index.js"
-  },
-  "dependencies": {
-    "node-fetch": "^3.3.0"
-  }
+  "type": "module"
 }
