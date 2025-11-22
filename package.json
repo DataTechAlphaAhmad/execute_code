@@ -3,5 +3,9 @@
   "version": "1.0.0",
   "description": "Code execution function",
   "main": "src/index.js",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build": "echo 'No build needed'",
+    "start": "node src/index.js"
+  }
 }
