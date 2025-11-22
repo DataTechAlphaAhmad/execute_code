@@ -1,0 +1,16 @@
+{
+  "name": "code-execution-function",
+  "version": "1.0.0",
+  "description": "Appwrite function to execute code via OneCompiler API",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}
