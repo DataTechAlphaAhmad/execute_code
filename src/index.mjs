@@ -1,19 +1,17 @@
 export default async ({ req, res, log, error }) => {
   log("🚀 Code Execution Function started");
 
-  log("📌 RAW req.body:", JSON.stringify(req.body || {}));
-
   let body = {};
 
   try {
-    if (req.body && req.body.body) {
-      log("🔍 req.body.body FOUND:", req.body.body);
-      body = JSON.parse(req.body.body);
+    if (req.body) {
+      log("🔍 RAW req.body:", req.body);
+      body = JSON.parse(req.body);
     } else {
-      log("⚠️ req.body.body is MISSING!");
+      log("⚠️ req.body is empty");
     }
   } catch (err) {
-    log("❌ Failed to parse req.body.body:", err.message);
+    log("❌ Failed to parse req.body:", err.message);
   }
 
   log("📦 FINAL Parsed Body:", JSON.stringify(body));
@@ -113,3 +111,4 @@ export default async ({ req, res, log, error }) => {
     },
   });
 };
+
