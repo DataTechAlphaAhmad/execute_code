@@ -5,13 +5,13 @@ export default async ({ req, res, log, error }) => {
 
   try {
     if (req.body) {
-      log("🔍 RAW req.body:", req.body);
+      log("📌 RAW req.body:", req.body);
       body = JSON.parse(req.body);
     } else {
       log("⚠️ req.body is empty");
     }
   } catch (err) {
-    log("❌ Failed to parse req.body:", err.message);
+    log("❌ Failed parsing req.body:", err.message);
   }
 
   log("📦 FINAL Parsed Body:", JSON.stringify(body));
@@ -26,32 +26,16 @@ export default async ({ req, res, log, error }) => {
     });
   }
 
-  log("💻 Language:", language);
-  log("📝 Code length:", code.length);
-  log("📥 Input:", stdin || "(empty)");
-
   const apiKey = process.env.ONECOMPILER_API_KEY;
 
-  if (!apiKey) {
-    error("❌ OneCompiler API key not configured");
-    return res.json({
-      ok: false,
-      error: "OneCompiler API key not configured",
-    });
-  }
-
   const fileName =
-    language === "python"
-      ? "main.py"
-      : language === "cpp"
-      ? "main.cpp"
-      : "Main.java";
+    language === "python" ? "main.py" :
+    language === "cpp" ? "main.cpp" :
+    "Main.java";
 
-  log("📄 File name:", fileName);
   log("🌐 Calling OneCompiler API...");
 
   let response;
-
   try {
     response = await fetch("https://onecompiler.com/api/code/exec", {
       method: "POST",
@@ -60,46 +44,17 @@ export default async ({ req, res, log, error }) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        language: language,
+        language,
         stdin: stdin || "",
         files: [{ name: fileName, content: code }],
       }),
     });
-  } catch (err) {
-    error("❌ OneCompiler fetch error:", err.message);
-    return res.json({
-      ok: false,
-      error: "Failed to connect to OneCompiler: " + err.message,
-    });
+  } catch (e) {
+    return res.json({ ok: false, error: "OneCompiler request failed" });
   }
 
-  log("📥 OneCompiler response status:", response.status);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    error("❌ OneCompiler API error:", errorText);
-    return res.json({
-      ok: false,
-      error: `OneCompiler API error (${response.status}): ${errorText}`,
-    });
-  }
-
-  let json;
-  try {
-    json = await response.json();
-    log("📘 OneCompiler response JSON:", JSON.stringify(json));
-  } catch (err) {
-    error("❌ Failed to parse OneCompiler response");
-    return res.json({
-      ok: false,
-      error: "Invalid OneCompiler response",
-    });
-  }
-
+  const json = await response.json();
   const executionResult = json.post?.properties?.result || {};
-
-  log("📤 Stdout:", executionResult.stdout || "(empty)");
-  log("📤 Stderr:", executionResult.stderr || "(empty)");
 
   return res.json({
     ok: true,
@@ -111,4 +66,3 @@ export default async ({ req, res, log, error }) => {
     },
   });
 };
-
