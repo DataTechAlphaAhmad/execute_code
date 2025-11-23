@@ -6,9 +6,10 @@ export default async ({ req, res, log, error }) => {
 let body = {};
 
 try {
-  if (req.body && req.body.data) {
-    body = JSON.parse(req.body.data);
-  }
+  if (req.body && req.body.body) {
+    body = JSON.parse(req.body.body);
+}
+
 } catch (e) {
   log("❌ Failed to parse req.body.data");
 }
@@ -112,5 +113,6 @@ try {
     },
   });
 };
+
 
 
