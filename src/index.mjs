@@ -2,15 +2,16 @@ export default async ({ req, res, log, error }) => {
   log("🚀 Code Execution Function started");
 
   // ✅ FIX: Appwrite sends payload in APPWRITE_FUNCTION_DATA
-  let raw = req.variables['APPWRITE_FUNCTION_DATA'] || '{}';
-  log("🔍 RAW APPWRITE_FUNCTION_DATA:", raw);
+  // For Appwrite v1 Functions → Payload is always inside req.body.data
+let body = {};
 
-  let body = {};
-  try {
-    body = JSON.parse(raw);
-  } catch (err) {
-    log("❌ Failed to parse body");
+try {
+  if (req.body && req.body.data) {
+    body = JSON.parse(req.body.data);
   }
+} catch (e) {
+  log("❌ Failed to parse req.body.data");
+}
 
 
   log("📦 Received body:", JSON.stringify(body));
@@ -111,4 +112,5 @@ export default async ({ req, res, log, error }) => {
     },
   });
 };
+
 
