@@ -2,12 +2,16 @@ export default async ({ req, res, log, error }) => {
   log("🚀 Code Execution Function started");
 
   // ✅ FIX: Appwrite sends payload in APPWRITE_FUNCTION_DATA
+  let raw = req.variables['APPWRITE_FUNCTION_DATA'] || '{}';
+  log("🔍 RAW APPWRITE_FUNCTION_DATA:", raw);
+
   let body = {};
   try {
-    body = JSON.parse(req.variables['APPWRITE_FUNCTION_DATA'] || '{}');
+    body = JSON.parse(raw);
   } catch (err) {
-    log("❌ Failed to parse APPWRITE_FUNCTION_DATA");
+    log("❌ Failed to parse body");
   }
+
 
   log("📦 Received body:", JSON.stringify(body));
 
@@ -107,3 +111,4 @@ export default async ({ req, res, log, error }) => {
     },
   });
 };
+
