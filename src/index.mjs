@@ -1,26 +1,27 @@
 export default async ({ req, res, log, error }) => {
   log("🚀 Code Execution Function started");
 
-  // ✅ FIX: Appwrite sends payload in APPWRITE_FUNCTION_DATA
-  // For Appwrite v1 Functions → Payload is always inside req.body.data
-let body = {};
+  log("📌 RAW req.body:", JSON.stringify(req.body || {}));
 
-try {
-  if (req.body && req.body.body) {
-    body = JSON.parse(req.body.body);
-}
+  let body = {};
 
-} catch (e) {
-  log("❌ Failed to parse req.body.data");
-}
+  try {
+    if (req.body && req.body.body) {
+      log("🔍 req.body.body FOUND:", req.body.body);
+      body = JSON.parse(req.body.body);
+    } else {
+      log("⚠️ req.body.body is MISSING!");
+    }
+  } catch (err) {
+    log("❌ Failed to parse req.body.body:", err.message);
+  }
 
-
-  log("📦 Received body:", JSON.stringify(body));
+  log("📦 FINAL Parsed Body:", JSON.stringify(body));
 
   const { code, language, stdin } = body;
 
   if (!code || !language) {
-    log("❌ Missing code or language");
+    log("❌ Missing code or language IN PARSED BODY");
     return res.json({
       ok: false,
       error: "Missing required fields: code and language are required",
@@ -88,7 +89,7 @@ try {
   let json;
   try {
     json = await response.json();
-    log("✅ OneCompiler response received");
+    log("📘 OneCompiler response JSON:", JSON.stringify(json));
   } catch (err) {
     error("❌ Failed to parse OneCompiler response");
     return res.json({
@@ -99,7 +100,6 @@ try {
 
   const executionResult = json.post?.properties?.result || {};
 
-  log("✅ Execution completed");
   log("📤 Stdout:", executionResult.stdout || "(empty)");
   log("📤 Stderr:", executionResult.stderr || "(empty)");
 
@@ -113,6 +113,3 @@ try {
     },
   });
 };
-
-
-
