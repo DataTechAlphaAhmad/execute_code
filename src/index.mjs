@@ -1,9 +1,14 @@
 export default async ({ req, res, log, error }) => {
   log("🚀 Code Execution Function started");
 
-  // ✅ FIX: Appwrite already parses req.body as JSON
-  const body = req.body || {};
-  
+  // ✅ FIX: Appwrite sends payload in APPWRITE_FUNCTION_DATA
+  let body = {};
+  try {
+    body = JSON.parse(req.variables['APPWRITE_FUNCTION_DATA'] || '{}');
+  } catch (err) {
+    log("❌ Failed to parse APPWRITE_FUNCTION_DATA");
+  }
+
   log("📦 Received body:", JSON.stringify(body));
 
   const { code, language, stdin } = body;
@@ -12,7 +17,7 @@ export default async ({ req, res, log, error }) => {
     log("❌ Missing code or language");
     return res.json({
       ok: false,
-      error: "Missing required fields: code and language are required"
+      error: "Missing required fields: code and language are required",
     });
   }
 
@@ -26,12 +31,16 @@ export default async ({ req, res, log, error }) => {
     error("❌ OneCompiler API key not configured");
     return res.json({
       ok: false,
-      error: "OneCompiler API key not configured"
+      error: "OneCompiler API key not configured",
     });
   }
 
-  const fileName = language === 'python' ? 'main.py' : 
-                   language === 'cpp' ? 'main.cpp' : 'Main.java';
+  const fileName =
+    language === "python"
+      ? "main.py"
+      : language === "cpp"
+      ? "main.cpp"
+      : "Main.java";
 
   log("📄 File name:", fileName);
   log("🌐 Calling OneCompiler API...");
@@ -42,20 +51,20 @@ export default async ({ req, res, log, error }) => {
     response = await fetch("https://onecompiler.com/api/code/exec", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         language: language,
         stdin: stdin || "",
-        files: [{ name: fileName, content: code }]
-      })
+        files: [{ name: fileName, content: code }],
+      }),
     });
   } catch (err) {
     error("❌ OneCompiler fetch error:", err.message);
     return res.json({
       ok: false,
-      error: "Failed to connect to OneCompiler: " + err.message
+      error: "Failed to connect to OneCompiler: " + err.message,
     });
   }
 
@@ -66,7 +75,7 @@ export default async ({ req, res, log, error }) => {
     error("❌ OneCompiler API error:", errorText);
     return res.json({
       ok: false,
-      error: `OneCompiler API error (${response.status}): ${errorText}`
+      error: `OneCompiler API error (${response.status}): ${errorText}`,
     });
   }
 
@@ -78,7 +87,7 @@ export default async ({ req, res, log, error }) => {
     error("❌ Failed to parse OneCompiler response");
     return res.json({
       ok: false,
-      error: "Invalid OneCompiler response"
+      error: "Invalid OneCompiler response",
     });
   }
 
@@ -94,7 +103,7 @@ export default async ({ req, res, log, error }) => {
       stdout: executionResult.stdout || "",
       stderr: executionResult.stderr || "",
       exception: executionResult.exception || null,
-      executionTime: executionResult.executionTime || 0
-    }
+      executionTime: executionResult.executionTime || 0,
+    },
   });
 };
