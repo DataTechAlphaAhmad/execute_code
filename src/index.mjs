@@ -1,14 +1,15 @@
 export default async ({ req, res, log, error }) => {
-  log("🚀 Code Execution Function started");
+  log("🚀 Code Execution Function started (RapidAPI Version)");
 
   let body = {};
 
+  // 1. ROBUST BODY PARSING
   try {
     if (req.body) {
       // Handle both object and string body types safely
       body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       
-      // Handle the nested body structure we created in the frontend
+      // Handle the nested body structure passed from frontend wrapper
       if (typeof body.body === 'string') {
         body = JSON.parse(body.body);
       }
@@ -19,8 +20,6 @@ export default async ({ req, res, log, error }) => {
     log("❌ Failed parsing req.body:", err.message);
     return res.json({ ok: false, error: "Invalid JSON body" });
   }
-
-  log("📦 FINAL Parsed Body Keys:", Object.keys(body));
 
   const { code, language, stdin } = body;
 
@@ -34,55 +33,89 @@ export default async ({ req, res, log, error }) => {
 
   const apiKey = process.env.ONECOMPILER_API_KEY;
 
-  // Language mapping (Safety fallback)
+  if (!apiKey) {
+    return res.json({ ok: false, error: "Server Error: API Key missing in environment variables" });
+  }
+
+  // 2. LANGUAGE MAPPING
+  // RapidAPI OneCompiler often uses simple names (python, java, cpp)
+  // We map the incoming codes to ensure compatibility.
   const langMap = {
     "c_cpp": "cpp",
     "python3": "python",
-    "java": "java"
+    "java": "java",
+    "cpp": "cpp",
+    "python": "python"
   };
   
-  // Use the mapped name for file extension, but keep original for API if needed
-  const simpleLang = langMap[language] || language;
+  const targetLang = langMap[language] || language;
   
   const fileName =
-    simpleLang === "python" ? "main.py" :
-    simpleLang === "cpp" ? "main.cpp" :
+    targetLang === "python" ? "main.py" :
+    targetLang === "cpp" ? "main.cpp" :
     "Main.java";
 
-  log(`🌐 Calling OneCompiler API for ${language}...`);
+  log(`🌐 Calling RapidAPI OneCompiler for ${targetLang}...`);
 
+  // 3. RAPID API REQUEST
   let response;
   try {
-    response = await fetch("https://onecompiler.com/api/code/exec", {
+    response = await fetch("https://onecompiler-apis.p.rapidapi.com/api/v1/run", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "content-type": "application/json",
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "onecompiler-apis.p.rapidapi.com"
       },
       body: JSON.stringify({
-        language: language, // Pass the language code (e.g., 'c_cpp')
+        language: targetLang,
         stdin: stdin || "",
-        files: [{ name: fileName, content: code }],
+        files: [
+          {
+            name: fileName,
+            content: code
+          }
+        ]
       }),
     });
   } catch (e) {
-    error("❌ OneCompiler request failed:", e.message);
-    return res.json({ ok: false, error: "OneCompiler request failed" });
+    error("❌ RapidAPI Network request failed:", e.message);
+    return res.json({ ok: false, error: "Network request failed" });
   }
 
-  const json = await response.json();
-  
-  // 🔍 CRITICAL LOGGING: See exactly what OneCompiler returned
-  log("📥 OneCompiler Raw Response:", JSON.stringify(json));
+  // 4. ROBUST RESPONSE HANDLING
+  const status = response.status;
+  log(`📥 HTTP Status: ${status}`);
 
-  // ✅ FIX: smarter parsing logic
-  // API usually returns data at root, but sometimes in .result
-  // We check multiple places to be safe.
-  const stdout = json.stdout || json.result?.stdout || json.post?.properties?.result?.stdout || "";
-  const stderr = json.stderr || json.result?.stderr || json.exception || json.post?.properties?.result?.stderr || "";
+  // Read raw text first to avoid JSON parse errors on empty/error responses
+  const rawText = await response.text();
+  
+  // Log the start of the response to debug
+  log(`📄 Raw Response Body: ${rawText.substring(0, 500)}`);
+
+  if (!response.ok) {
+    // If status is 401/403, it's usually an API key issue
+    return res.json({ 
+      ok: false, 
+      error: `RapidAPI Error ${status}: ${rawText}` 
+    });
+  }
+
+  let json = {};
+  try {
+    json = JSON.parse(rawText);
+  } catch (e) {
+    error("❌ Failed to parse JSON response");
+    return res.json({ ok: false, error: "Invalid JSON response from Compiler API" });
+  }
+
+  // 5. DATA EXTRACTION
+  // RapidAPI structure usually puts stdout at the root level
+  const stdout = json.stdout || json.result?.stdout || "";
+  const stderr = json.stderr || json.result?.stderr || json.exception || "";
   const executionTime = json.executionTime || json.result?.executionTime || 0;
 
-  log(`✅ Extracted Output: ${stdout.substring(0, 50)}...`);
+  log(`✅ Success! Output Length: ${stdout.length}`);
 
   return res.json({
     ok: true,
